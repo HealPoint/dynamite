@@ -1,0 +1,114 @@
+body {
+	margin: 20px;
+	padding: 0;
+	font-family: Lucida Grande, sans-serif;
+	font-size: 11px;	
+}
+
+h1, h2, h3, h4 {
+	margin: 0;
+}
+
+#dynamite-app {
+	margin: 0;
+	padding: 0;
+	width: 1035px;
+	border: solid 1px #ddd;
+}
+
+#dynamite-canvas-wrapper {
+	width: 800px;
+	margin: 0;
+}
+
+#dynamite-canvas {
+	background: #fff;
+}
+
+#dynamite-app-ui {
+	background: #dee3e9;
+	width: 234px;
+	margin: 0;
+	padding: 0;
+	float: right;
+	border-left: solid 1px #C4CACF;
+	height: 504px;
+	overflow: auto;
+	/*padding: 5px 5px 5px 10px;*/
+}
+
+#dynamite-app-ui a {
+	color: #000;
+	text-decoration: none;
+}
+
+#dynamite-app-ui .dynamite-plot {
+}
+
+#dynamite-app-ui .dynamite-plot .header {
+	padding: 2px 5px;	
+}
+
+#dynamite-app-ui .dynamite-plot.selected .header {	
+	background: #4796D9;	
+}
+
+#dynamite-app-ui .dynamite-plot {
+	/*border-bottom: solid 1px #000;*/
+}
+
+#dynamite-app-ui .dynamite-plot.selected .header a {
+	color: #fff;
+}
+
+#dynamite-app-ui .dynamite-plot .plot-settings {
+	display: none;
+	padding: 2px 5px;
+	border-top: solid 1px #fff;
+	border-bottom: solid 1px #fff;
+	background: #EDEDED;
+}
+
+#dynamite-app-ui .dynamite-plot .plot-settings .plot-actions {
+	text-align: right;
+}
+
+#dynamite-app-ui .dynamite-plot .plot-settings .plot-actions a.plot-delete {
+	color: red;
+}
+
+#dynamite-app-ui .dynamite-plot .plot-settings .section .title {
+	background: #D5D5D5;
+	padding: 2px 5px;
+}
+
+#dynamite-app-ui .dynamite-plot .plot-settings .section .content {
+	padding: 5px 8px;
+}
+
+#dynamite-app-ui .dynamite-plot .plot-settings .section .content .setting {
+	margin: 0 0 5px 0;
+}
+
+.simpleColorChooser {
+	background: #fff !important;
+	z-index: 999 !important;
+}
+
+.noUiSlider.horizontal {
+	width: 80% !important;
+}
+
+.noUiSlider div {
+	border-radius: 0 !important;
+}
+
+/* toolbar */
+#dynamite-toolbar {
+	padding: 5px 5px;
+	background: #c6c6c6;
+}
+
+.dynamite-new-plot-dialog .plot-type .details {
+	display: none;
+}

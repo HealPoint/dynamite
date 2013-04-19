@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en-US" dir="ltr">
+<head>
+	<title>DYNAMITE-JS</title>
+	<script src="js/jquery-1.9.1.min.js"></script>
+	<script src="js/jquery.simple-color.js"></script>
+	<script src="js/jquery.blockUI.js"></script>
+	<script src="js/asciimath-2.0.2/ASCIIMathML.js"></script>
+
+	<link rel="stylesheet" type="text/css" href="js/nouislider/nouislider.fox.css" />
+	<script src="js/nouislider/jquery.nouislider.min.js"></script>
+
+	<script src="js/Base.js"></script>
+
+	<script src="js/js-expression-eval/parser.js"></script>
+
+	<script src="js/dynamite-core.js"></script>
+	<script src="js/dynamite-plots.js"></script>	
+	<script src="js/dynamite-canvas.js"></script>
+	<script src="js/dynamite-app.js"></script>
+	<link rel="stylesheet" type="text/css" href="css/dynamite.css" />
+</head>
+
+<body>
+	Alt+Click to plot orbits
+	<div id="dynamite-app">
+		<div id="dynamite-canvas-wrapper" style="float: left;">
+			<canvas id="dynamite-canvas" width="800" height="500"></canvas>
+		</div>
+
+		<div id="dynamite-app-ui">
+			<div id="dynamite-toolbar">
+				<a href="#" class="add-plot button">[Add]</a>
+				<a href="#" class="examples button">[Examples]</a>
+			</div>
+
+			<div id="dynamite-plot-list">
+			</div>
+		</div>
+
+		<br style="clear: both; visibility: hidden; display: block; height: 0px; margin: 0; padding: 0;"/>
+	</div>
+</body>
+
+</html>
