@@ -234,7 +234,7 @@ plots.PlotModel = Base.extend({
 
 plots.Plot = Base.extend({
 	constructor: function() {
-		this.settings = { lineWidth: 1.0, lineColor: '#000' };
+		this.settings = { lineWidth: 1.5, lineColor: '#000' };
 		this.enabled = true;
 		this.priority = 0;
 		this.listeners = [];
@@ -559,7 +559,8 @@ plots.OrbitPlot = plots.Plot.extend({
 		this.initialPoint = initialPoint;
 		this.priority = 10;
 
-		this.settings.lineColor = '#ff0000';
+		this.settings.showInitialPoint = false;
+		//this.settings.lineColor = '#ff0000';
 		this.settings.solver = 'RungeKutta4';
 		this.settings.solverStepSize = 0.01;
 		this.settings.solverTF = 5.0;
@@ -585,9 +586,11 @@ plots.OrbitPlot = plots.Plot.extend({
 
 			if ( first ) {
 				// draw initial point a little bigger
-				c.fillStyle = this.settings.lineColor;
-				c.arc(pixel.x, pixel.y, 2.5, 0, 2*Math.PI);
-				c.fill();
+				if ( this.settings.showInitialPoint ) {
+					c.fillStyle = this.settings.lineColor;
+					c.arc(pixel.x, pixel.y, 2.5, 0, 2*Math.PI);
+					c.fill();
+				}
 
 				c.moveTo(pixel.x, pixel.y);
 				first = false;
@@ -605,6 +608,118 @@ plots.OrbitPlot = plots.Plot.extend({
 
 	toString: function() {
 		return this.system.toString() + ' x0 = ' + this.initialPoint.toString();
+	}
+
+});
+
+// Julia Set plot
+plots.JuliaSetPlot = plots.Plot.extend({
+	constructor: function(c) {
+		this.base();
+		this.c = this.complex(c.x, c.y);
+		this.dataset = [];
+
+		this.settings.iterations = 50;
+		this.settings.tolerance = 2.0;
+	},
+
+	complex: function(x, y) {
+		var ComplexNumber = function(a, b) {
+			this.a = a;
+			this.b = b;
+		};
+
+		ComplexNumber.prototype.add_ = function(z) {
+			return new ComplexNumber( this.a + z.a, this.b + z.b );
+		};
+
+		ComplexNumber.prototype.mult = function(z) {
+			return new ComplexNumber( (this.a * z.a) - (this.b * z.b), (this.a * z.b) + (this.b * z.a) );
+		};
+
+		ComplexNumber.prototype.abs = function() {
+			return Math.sqrt( this.a * this.a + this.b * this.b );
+		};
+
+		ComplexNumber.prototype.asPoint = function() {
+			return new dynamite.core.Point(this.a, this.b);
+		},
+
+		ComplexNumber.prototype.toString = function() {
+			return this.a + ' + ' + this.b + 'i';
+		};
+
+		return new ComplexNumber(x, y);
+	},
+
+	compute: function(dContext) {
+		var dataset = [];
+		var h = 0.005;
+		
+		var x = 0;
+		var y = 0;
+		var z = null;
+
+		x = dContext.view[0].x;
+
+		while (x <= dContext.view[1].x) {
+			y = dContext.view[0].y;
+
+			while (y <= dContext.view[1].y) {
+				n = 0;
+				z = this.complex(x, y);
+
+				while ( n < (this.settings.iterations - 1) && z.abs() < this.settings.tolerance ) {
+					z = z.mult(z).add_(this.c);
+					n += 1;
+				}
+
+				if (z.abs() < this.settings.tolerance) {
+					dataset.push(new dynamite.core.Point(x,y));
+				}
+
+				y += h;
+			}
+
+			x += h;
+		}	
+
+		this.dataset = dataset;
+	},
+
+	paint: function(c, dContext) {
+		var dataset = this.dataset;
+		
+		c.fillStyle = this.settings.lineColor;
+		// var img = c.createImageData(dContext.width, dContext.height);
+
+		for (var i = 0; i < dataset.length; i++) {
+			var p = dContext.pointToPixel(dataset[i]);
+
+			c.beginPath();
+			c.arc(p.x, p.y, 0.8, 0, 2*Math.PI);
+			c.fill();
+		// 	// this.pixel(img, ~~p.x, ~~p.y, 0, 0, 0, 255);
+		}
+		
+
+		// c.putImageData(img, 0, 0);
+	},
+
+	pixel: function(imageData, x, y, r, g, b, a) {
+	    index = (x + y * imageData.width) * 4;
+	    imageData.data[index+0] = r;
+	    imageData.data[index+1] = g;
+	    imageData.data[index+2] = b;
+	    imageData.data[index+3] = a;
+	},
+
+	getSettingsProfile: function() {
+		return 'JuliaSetPlot';
+	},
+
+	toString: function() {
+		return 'Julia Set: c = ' + this.c.toString();
 	}
 
 });

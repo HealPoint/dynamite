@@ -78,6 +78,20 @@ canvas.Canvas = Base.extend({
 		this._setupListeners();
 	},
 
+	setViewLimits: function(x0, x1, y0, y1) {
+		this.view[0].x = x0;
+		this.view[0].y = y0;
+		this.view[1].x = x1;
+		this.view[1].y = y1;
+
+		this.canvasContext.setView(this.view);
+		this.requestRepaint();
+	},
+
+	resetViewLimits: function() {
+		this.setViewLimits(-5.0, 5.0, -3.0, 3.0);
+	},
+
 	_setupListeners: function() {
 		var thisCanvas = this;
 

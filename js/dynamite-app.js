@@ -209,7 +209,7 @@ dynamite.createApp = function(appName, canvas) {
 			html += '<div class="plot-type">';
 			html += '<div class="header"><label><input type="radio" name="plotType" value="function" /> Cartesian Function</label></div>';
 			html += '<div class="details">';
-			html += '<label>y = f(x) = <input type="text" value="" class="fx" />';
+			html += '<label><span class="mathml">y = f(x) =</span> <input type="text" value="" class="fx" />';
 			html += '</div>';
 			html += '</div>';
 
@@ -218,20 +218,54 @@ dynamite.createApp = function(appName, canvas) {
 			html += '<div class="header"><label><input type="radio" name="plotType" value="odesystem" /> Planar ODE System</label></div>';
 			html += '<div class="details">';
 
-			html += '<label>dx/dt = <input type="text" value="" class="dx" />, ';
-			html += '<label>dy/dt = <input type="text" value="" class="dy" /></label>';
+			html += '<label><span class="mathml">dx/dt =</span> <input type="text" value="" class="dx" />, ';
+			html += '<label><span class="mathml">dy/dt =</span> <input type="text" value="" class="dy" /></label>';
 
 			html += '</div>';
 			html += '</div>';
 
+			// Julia Set
+			html += '<div class="plot-type">';
+			html += '<div class="header"><label><input type="radio" name="plotType" value="juliaset" /> Julia Set</label></div>';
+			html += '<div class="details">';
 
+			html += '<label><span class="mathml">c = </span><input type="text" value="" class="c_re" size="5" /> ';
+			html += '<span class="mathml">+</span> <input type="text" value="" class="c_im" size="5" /> <span class="mathml">i</span></label>';
+
+			html += '</div>';
+			html += '</div>';
+
+			html += '<br />';
 			html += '<input type="button" value="Cancel" class="cancel-button" />';
 			html += '<input type="button" value="Add" class="add-button" disabled="disabled" />';
 			html += '</div>';
 
 			jQuery('body').append(html);
+			jQuery('.dynamite-new-plot-dialog span.mathml').each(function(i,e){
+				var $e = jQuery(e);
+
+				$e.html('`' + $e.html() + '`');
+				AMprocessNode($e.get(0));
+			});
+
 
 			// bind stuff
+			var esc_pressed = function(e){
+				if (e.keyCode == 27) {
+					jQuery.unblockUI();
+					// jQuery(document).unbind('keydown');
+				}
+			};
+
+			jQuery(document).keydown(esc_pressed);
+			jQuery(document).keydown(function(e){
+				jQuery(document).unbind('keydown', esc_pressed);
+			});
+
+			jQuery('.dynamite-new-plot-dialog .cancel-button').click(function(){
+				jQuery.unblockUI();				
+			});
+
 			var $add = jQuery('.dynamite-new-plot-dialog .add-button');
 			var $plotTypeRadios = jQuery('.dynamite-new-plot-dialog .plot-type input[type="radio"]');
 
@@ -306,6 +340,18 @@ dynamite.createApp = function(appName, canvas) {
 							alert('Parsing Error: ' + err.toString());
 							return;
 						}
+
+						break;
+					case 'juliaset':
+						var c_re = parseFloat(jQuery('.dynamite-new-plot-dialog input.c_re').val());
+						var c_im = parseFloat(jQuery('.dynamite-new-plot-dialog input.c_im').val());
+
+						if ( isNaN(c_re) || isNaN(c_im) ) {
+							alert('Invalid number!');
+							return;
+						}
+
+						this.model.add(new dynamite.plots.JuliaSetPlot(new dynamite.core.Point(c_re, c_im)));
 
 						break;
 					default:
@@ -473,6 +519,17 @@ settingsui.SettingsUI = Base.extend({
 		html += this._fields['orbit-integrator'].html;
 
 		id = this.uniqid();
+		this._fields['orbit-show-initial-point-checkbox'] = { 'id': id,
+										  html: '<div class="setting"><input type="checkbox" id="' + id + '" ' + ( this.plot.get('showInitialPoint') ? 'checked="checked"' : '' ) + ' /> <label>Show initial point</label></div>',
+										  init: function(field, plot) {
+										  	jQuery('#' + field.id).change(function(){
+										  		plot.set('showInitialPoint', jQuery(this).is(':checked'));
+										  	})
+										  }
+										};
+		html += this._fields['orbit-show-initial-point-checkbox'].html;		
+
+		id = this.uniqid();
 		this._fields['orbit-integrator-stepsize'] = { id: id,
 											 		  html: '<div class="setting"><label>Step Size:</label> <input type="text" id="' + id + '" value="' + this.plot.get('solverStepSize') + '" size="5" /> <input type="button" value="OK" /></div>',
 											 		  init: function(field, plot) {
@@ -593,40 +650,174 @@ settingsui.SettingsUI = Base.extend({
 		// e.formula = 'x^2 + 1';
 		// app.model.add(new dynamite.plots.FunctionPlot(e));
 
+		// Add
 		$('#dynamite-toolbar a.add-plot').click(function(e) {
 			e.preventDefault();
 			app.newPlotDialog();
 		});
 
+		$(document).keydown(function(e){
+			if ( e.metaKey && e.keyCode == 78) {
+				e.preventDefault();
+				app.newPlotDialog();
+			}
+		});
+
 		$('#dynamite-toolbar a.examples').click(function(e) {
 			e.preventDefault();
+
+			var example = $(this).attr('data-example');
 
 			app.model.each(function(plot) {
 				if (plot.constructor == dynamite.plots.CoordinateAxes)
 					return;
 
 				this.model.remove(plot);
-			}.bind(app));
+			}.bind(app));	
 
-			var ex = Parser.parse('atan(x)');
-			ex.formula = 'atan(x)';
-			var atan = new dynamite.plots.FunctionPlot(ex);
-			atan.settings.lineWidth = 2.0;
-			app.model.add(atan);
+			app.canvas.resetViewLimits();		
 
-			var pendulum = new dynamite.core.Pendulum2D();
-			var slopeField = new dynamite.plots.SlopeField(pendulum);
-			slopeField.settings.lineColor = 'orange';
-			slopeField.settings.useArrows = true;
-			slopeField.settings.density = 25.0;
-			app.model.add(slopeField);
+			switch (example) {
+				case 'harmonic-oscillator':
+					var dx = Parser.parse('y');
+					dx.formula = 'y';
+					var dy = Parser.parse('-x');
+					dy.formula = '-x';
 
-			for (var h = 0.0; h <= 5.0; h += 0.5) {
-				app.model.add(new dynamite.plots.OrbitPlot(pendulum, new dynamite.core.Point(h, 0.0)));	
+					var oscillator = new dynamite.core.ODEParsedSystem(dx, dy);
+					var slopeField = new dynamite.plots.SlopeField(oscillator);
+					slopeField.settings.lineWidth = 1.0;
+					slopeField.settings.useArrows = true;
+					slopeField.settings.density = 15;
+					slopeField.enabled = false;
+
+					app.model.add(slopeField);
+
+					for (var h = 0.0; h <= 2.5; h += 0.5) {
+						var plot = new dynamite.plots.OrbitPlot(oscillator, new dynamite.core.Point(h, 0.0));
+						plot.settings.lineWidth = 2.0;
+						plot.settings.solverTF = 7.0;
+
+						if (h == 0.0)
+							plot.settings.showInitialPoint = true;
+
+						app.model.add(plot);
+					}
+
+					break;
+				case 'pendulum':
+					var dx = Parser.parse('y');
+					dx.formula = 'y';
+					var dy = Parser.parse('-sin(x)');
+					dy.formula = '-sin(x)';
+
+					app.canvas.setViewLimits(-4.0, 8.0, -4.0, 4.0)
+
+					var pendulum = new dynamite.core.ODEParsedSystem(dx, dy);
+					var slopeField = new dynamite.plots.SlopeField(pendulum);
+					slopeField.settings.lineWidth = 1.0;
+					slopeField.settings.useArrows = true;
+					slopeField.settings.density = 18;
+					slopeField.enabled = false;
+
+					app.model.add(slopeField);
+
+					for (var n = 0; n <= 1; n++) {
+						for (var h = 0.0; h <= 1.5; h += 0.5) {
+							var plot = new dynamite.plots.OrbitPlot(pendulum, new dynamite.core.Point( (n * Math.PI) + ( n >= 0 ? h : -h), 0.0));
+							plot.settings.lineWidth = 2.0;
+							plot.settings.solverTF = 11.5;
+
+							if (h == 0.0) plot.settings.showInitialPoint = true;
+
+							app.model.add(plot);
+						}
+					}
+
+					var plot = new dynamite.plots.OrbitPlot(pendulum, new dynamite.core.Point(2*Math.PI, 0.0));
+					plot.settings.showInitialPoint = true;
+					app.model.add(plot);
+
+					for (var h = 2.5; h <= 3.0; h += 0.25) {
+						var plot = new dynamite.plots.OrbitPlot(pendulum, new dynamite.core.Point(-4.0, h));
+						plot.settings.lineWidth = 2.0;
+						plot.settings.solverTF = 10.0;
+
+						app.model.add(plot);
+					}
+
+					for (var h = -2.5; h >= -3.0; h -= 0.25) {
+						var plot = new dynamite.plots.OrbitPlot(pendulum, new dynamite.core.Point(10.0, h));
+						plot.settings.lineWidth = 2.0;
+						plot.settings.solverTF = 5.0;
+						console.log(plot);
+						app.model.add(plot);
+					}
+
+					break;
+				case 'lotka-volterra':
+					var dx = Parser.parse('x - (x*y)');
+					dx.formula = 'x - x*y';
+					var dy = Parser.parse('-y + (x*y)');
+					dy.formula = '-y + x*y';
+
+					app.canvas.setViewLimits(-3.0, 4.0, -0.5, 4.0);
+
+					var lotkavolterra = new dynamite.core.ODEParsedSystem(dx, dy);
+					var slopeField = new dynamite.plots.SlopeField(lotkavolterra);
+					slopeField.settings.lineWidth = 1.0;
+					slopeField.settings.useArrows = true;
+					slopeField.settings.density = 15;
+					slopeField.enabled = false;
+
+					app.model.add(slopeField);
+
+					for (var h = -2.0; h <= 3.5; h += 0.5) {
+						var plot = new dynamite.plots.OrbitPlot(lotkavolterra, new dynamite.core.Point(h, h >= 0 ? 1.5 : 3.0));
+						plot.settings.lineWidth = 2.0;
+						plot.settings.solverTF = 8.5;
+
+						app.model.add(plot);
+					}		
+
+					break;
+				case 'vanderpol':
+					var dx = Parser.parse('y');
+					dx.formula = 'y';
+					var dy = Parser.parse('(1-x^2)*y - x');
+					dy.formula = '(1-x^2)*y - x';
+
+					var vanderpol = new dynamite.core.ODEParsedSystem(dx, dy);
+					var slopeField = new dynamite.plots.SlopeField(vanderpol);
+					slopeField.settings.lineWidth = 1.0;
+					slopeField.settings.useArrows = true;
+					slopeField.settings.density = 15;
+					slopeField.enabled = false;
+
+					app.model.add(slopeField);
+
+					for (var h = 0.0; h <= 3.5; h += 0.5) {
+						var plot = new dynamite.plots.OrbitPlot(vanderpol, new dynamite.core.Point(h, 0.0));
+						plot.settings.lineWidth = 2.0;
+						plot.settings.solverTF = 8.0;
+						plot.settings.showInitialPoint = true;
+
+						app.model.add(plot);
+					}
+
+					break;
+				case 'juliaset':
+				app.canvas.setViewLimits(-2.5, 2.5, -1.5, 1.5);
+					var juliaset = new dynamite.plots.JuliaSetPlot(new dynamite.core.Point(0.285, 0.01));
+					// var juliaset = new dynamite.plots.JuliaSetPlot(new dynamite.core.Point(-0.835, -0.2321));
+					app.model.add(juliaset);
+				default:
+					break;
 			}
 
-
 		});
+
+		// $('#dynamite-toolbar a.examples[data-example="juliaset"]').click();
 
 	});
 

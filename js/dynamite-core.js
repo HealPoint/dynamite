@@ -55,17 +55,6 @@ core.ODEParsedSystem = core.ODEPlanarSystem.extend({
     }
 });
 
-/* Pendulum: x' = -y + cos(2x), y' = x + sin(2y) */
-core.Pendulum2D = core.ODEPlanarSystem.extend({
-    evaluate: function(x, y, t) {
-        return new core.Point(-y + Math.cos(2*x), x + Math.sin(2*y));
-    },
-
-    toString: function() {
-        return 'x\' = -y + cos(2x), y\' = x + sin(2y)';
-    }
-});
-
 integrators = namespace('dynamite.core.integrators');
 
 integrators.ODEIntegrator = Base.extend({
